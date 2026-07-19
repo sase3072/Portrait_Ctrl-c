@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포트레이트 Ctrl+c</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #ffffff;
+            --accent-rgb: 255, 255, 255;
+            --accent-text: #121212;
+        }
+
+        /* [다크 모드 전용 변수] */
+        body.dark-mode {
+            --bg-deep: #121212;
+            --bg-card: #1e1e1e;
+            --bg-input: #121212;
+            --border-color: #333333;
+            --text-main: #f5f5f5;
+            --text-dim: #888888;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        /* [라이트 모드 전용 변수] */
+        body.light-mode {
+            --bg-deep: #f5f5f7;
+            --bg-card: #ffffff;
+            --bg-input: #f5f5f7;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --text-dim: #64748b;
+            --shadow: rgba(148, 163, 184, 0.15);
+        }
+
+        /* 컬러 테마 정의 */
+        body.theme-mono { 
+            --accent: var(--text-main); 
+            --accent-rgb: 255, 255, 255;
+            --accent-text: var(--bg-card);
+        }
+        body.theme-blue { --accent: #3b82f6; --accent-rgb: 59, 130, 246; --accent-text: #ffffff; }
+        body.theme-green { --accent: #10b981; --accent-rgb: 16, 185, 129; --accent-text: #ffffff; }
+        body.theme-purple { --accent: #a855f7; --accent-rgb: 168, 85, 247; --accent-text: #ffffff; }
+        body.theme-red { --accent: #ef4444; --accent-rgb: 239, 68, 68; --accent-text: #ffffff; }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Urbanist', 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        /* 반응형을 위한 넓이 가변 처리 */
+        .container-box { 
+            width: 100%; 
+            max-width: 1100px; 
+            position: relative; 
+            transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .app-header {
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 35px; padding: 0; width: 100%;
+        }
+
+        .title-area { text-align: center; }
+        .title-area h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--text-main); }
+        .title-area h1 span { color: var(--accent); transition: color 0.3s; }
+
+        .credits-link {
+            position: absolute; top: 12px; left: 0; color: var(--text-dim);
+            font-size: 13px; font-weight: 500; letter-spacing: 0.3px; text-decoration: none;
+            transition: color 0.2s ease; z-index: 10;
+        }
+        .credits-link:hover { color: var(--accent); }
+
+        .top-right-actions {
+            position: absolute; top: 6px; right: 0; display: flex; gap: 8px; z-index: 10;
+        }
+
+        .header-btn {
+            background: transparent; color: var(--text-dim); border: 1px solid var(--border-color);
+            padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 12px;
+            font-weight: 500; transition: all 0.3s ease; display: flex; align-items: center; gap: 5px;
+        }
+        .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .header-btn.danger-hover:hover {
+            border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.1);
+        }
+
+        .app-wrapper { width: 100%; display: grid; grid-template-columns: 350px 1fr; gap: 24px; }
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 20px; padding: 24px; box-shadow: 0 10px 25px -5px var(--shadow);
+            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .card-title {
+            font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-dim);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-title.sub-labeled { margin-bottom: 6px; }
+        .card-sub-guide { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; font-weight: 400; line-height: 1.4; }
+        .card-title i { color: var(--accent); transition: color 0.3s; }
+
+        .mode-selector {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            background: var(--bg-input); padding: 4px; border-radius: 12px;
+            margin-bottom: 15px; border: 1px solid var(--border-color);
+        }
+        .mode-btn {
+            border: none; background: transparent; color: var(--text-dim); padding: 8px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;
+            display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;
+        }
+        .mode-btn.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 8px var(--shadow); }
+
+        input[type="text"], select {
+            width: 100%; background: var(--bg-input); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 12px 16px; color: var(--text-main); font-family: inherit;
+            font-size: 14px; margin-bottom: 12px; transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+        }
+        input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        button.primary-btn {
+            width: 100%; background: var(--accent); color: var(--accent-text); border: none;
+            padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        button.primary-btn:hover { filter: brightness(0.9); transform: translateY(-2px); }
+
+        button.secondary-btn {
+            width: 100%; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        button.secondary-btn:hover { border-color: var(--text-dim); }
+
+        button.danger-btn {
+            width: 100%; background: var(--bg-input); color: var(--text-dim); border: 1px solid var(--border-color);
+            padding: 10px; border-radius: 10px; cursor: pointer; font-size: 13px; transition: all 0.3s;
+        }
+        button.danger-btn:hover { background: #ef4444; color: white; border-color: #ef4444; }
+
+        .backup-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .backup-btn {
+            background: transparent; border: 1px dashed var(--border-color); color: var(--text-dim);
+            padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+        }
+        .backup-btn:hover { border-color: var(--accent); color: var(--text-main); }
+
+        .theme-selector { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; }
+        .theme-dot {
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; transition: transform 0.2s;
+        }
+        .theme-dot:hover { transform: scale(1.2); }
+        .theme-dot.active { border-color: var(--text-main); transform: scale(1.1); }
+        
+        input[type="color"].custom-color-picker {
+            width: 24px; height: 24px; border: none; padding: 0; background: transparent;
+            cursor: pointer; border-radius: 50%; transition: transform 0.2s;
+        }
+        input[type="color"].custom-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"].custom-color-picker::-webkit-color-swatch { border: 2px solid transparent; border-radius: 50%; }
+        input[type="color"].custom-color-picker:hover { transform: scale(1.1); }
+
+        .drop-area {
+            border: 2px dashed var(--border-color); border-radius: 16px; padding: 30px 20px;
+            text-align: center; cursor: pointer; color: var(--text-dim); transition: all 0.3s;
+        }
+        .drop-area:hover { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.05); color: var(--text-main); }
+        .drop-area i { font-size: 24px; margin-bottom: 10px; display: block; }
+
+        .preview-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 12px; margin-top: 10px; max-height: 200px; overflow-y: auto;
+        }
+        .preview-wrapper { position: relative; width: 50px; }
+        .preview-item {
+            width: 50px; height: 50px; border-radius: 10px; overflow: hidden;
+            border: 2px solid transparent; cursor: pointer;
+        }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-delete-btn {
+            position: absolute; top: -4px; right: -4px; width: 16px; height: 16px;
+            background: #64748b; border: 2px solid var(--bg-card); border-radius: 50%;
+            color: white; font-size: 8px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 10;
+        }
+        .preview-delete-btn:hover { background: #ef4444; }
+        .preview-label { font-size: 10px; color: var(--text-dim); text-align: center; margin-top: 4px; }
+
+        .main-content { display: flex; flex-direction: column; gap: 20px; }
+
+        .buttons-container {
+            display: grid; 
+            /* 고정 픽셀(160px) 대신 1fr 비율을 사용하여 창 크기에 맞춰 유동적으로 변하게 수정 */
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 20px; 
+            padding: 10px; 
+            transition: grid-template-columns 0.4s ease;
+        }
+        .btn-card {
+            position: relative; 
+            width: 100%; /* 부모 그리드 셀에 꽉 차도록 수정 */
+            aspect-ratio: 1; /* 정사각형 비율 자동 유지 */
+            height: auto; 
+            background: var(--bg-card);
+            border-radius: 18px; overflow: hidden; cursor: grab; border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px var(--shadow); transition: all 0.3s ease;
+        }
+        .btn-card:active { cursor: grabbing; }
+        .btn-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 10px 20px var(--shadow); }
+        .btn-card img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-card .label-overlay {
+            position: absolute; bottom: 6px; left: 0; width: 100%; padding: 0 4px;
+            color: #ffffff; font-size: 13px; text-align: center; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: transparent;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000,
+                         -2px 0px 0 #000, 2px 0px 0 #000, 0px -2px 0 #000, 0px 2px 0 #000;
+        }
+        .card-delete-btn {
+            position: absolute; top: 6px; right: 6px; width: 22px; height: 22px;
+            background: rgba(0, 0, 0, 0.6); border-radius: 50%; color: #ffffff;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            opacity: 0; transition: opacity 0.2s, background 0.2s; border: 1px solid rgba(255,255,255,0.2);
+            font-size: 10px; z-index: 10;
+        }
+        .card-delete-btn:hover { background: #ef4444; }
+        .btn-card:hover .card-delete-btn { opacity: 1; }
+
+        /* --- [반응형 레이아웃 CSS 추가] --- */
+        @media (max-width: 900px) {
+            .app-wrapper {
+                grid-template-columns: 1fr; /* 창이 좁아지면 설정란과 포트레이트 란을 상하 1열로 변경 */
+            }
+            .container-box { padding: 40px 10px; }
+            .top-right-actions, .credits-link { top: 2px; }
+        }
+
+        @media (max-width: 600px) {
+            .buttons-container {
+                /* 아주 좁은 화면(모바일 등)에서는 4/5/6열 설정을 무시하고 보기 좋게 자동 배열 */
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+                gap: 12px;
+            }
+            .btn-card .label-overlay { font-size: 12px; }
+        }
+
+        /* 모달 오버레이 공통 스타일 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);
+            z-index: 1000; justify-content: center; align-items: center;
+            opacity: 1; transition: opacity 0.3s;
+        }
+
+        .modal-content {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 30px; border-radius: 24px; width: 90%; max-width: 500px; text-align: center;
+        }
+
+        .image-crop-box {
+            background: #000; border-radius: 16px; overflow: hidden;
+            margin-bottom: 24px; height: 350px; display: flex; justify-content: center; align-items: center;
+        }
+        #image-to-crop { max-width: 100%; max-height: 100%; }
+        .modal-footer { display: flex; gap: 12px; }
+        .modal-btn { flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; }
+        .modal-btn.save { background: var(--accent); color: var(--accent-text); }
+        .modal-btn.cancel { background: #64748b; color: white; }
+
+        /* 도움말/오버레이 전용 스타일 */
+        .help-content-box {
+            text-align: left; margin-bottom: 24px; color: var(--text-main); font-size: 14px;
+            line-height: 1.6; max-height: 60vh; overflow-y: auto; padding-right: 10px;
+        }
+        .help-content-box h3 { color: var(--accent); font-size: 16px; margin-top: 20px; margin-bottom: 8px; }
+        .help-content-box h3:first-child { margin-top: 0; }
+        .help-content-box ul { padding-left: 20px; margin: 0; color: var(--text-dim); }
+        .help-content-box li { margin-bottom: 6px; }
+
+        #alert-box {
+            position: fixed; bottom: 30px; background: var(--text-main); color: var(--bg-card);
+            padding: 12px 24px; border-radius: 12px; font-weight: 600; display: none;
+            z-index: 2000; box-shadow: 0 10px 20px var(--shadow);
+        }
+    </style>
+</head>
+<body class="theme-mono dark-mode">
+
+    <div class="container-box" id="main-container">
+        
+        <span class="credits-link">@sa_se372</span>
+        
+        <div class="top-right-actions">
+            <button class="header-btn" onclick="openHelpModal()"><i class="fa-solid fa-circle-question"></i> 도움말</button>
+            <button class="header-btn danger-hover" onclick="resetAll()"><i class="fa-solid fa-rotate-right"></i> 초기화</button>
+        </div>
+
+        <div class="app-header">
+            <div class="title-area">
+                <h1>포트레이트 <span>Ctrl+c</span></h1>
+                </div>
+        </div>
+
+        <div class="app-wrapper">
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-title"><i class="fa-solid fa-circle-half-stroke"></i> 화면 모드</div>
+                    <div class="mode-selector">
+                        <button class="mode-btn" id="btn-light" onclick="setScreenMode('light')">
+                            <i class="fa-solid fa-sun"></i> 라이트
+                        </button>
+                        <button class="mode-btn active" id="btn-dark" onclick="setScreenMode('dark')">
+                            <i class="fa-solid fa-moon"></i> 다크
+                        </button>
+                    </div>
+
+                    <div class="card-title"><i class="fa-solid fa-palette"></i> 테마 컬러 설정</div>
+                    <div class="theme-selector">
+                        <div class="theme-dot active" style="background-color: #a1a1aa;" onclick="setTheme('mono', this)"></div>
+                        <div class="theme-dot" style="background-color: #3b82f6;" onclick="setTheme('blue', this)"></div>
+                        <div class="theme-dot" style="background-color: #10b981;" onclick="setTheme('green', this)"></div>
+                        <div class="theme-dot" style="background-color: #a855f7;" onclick="setTheme('purple', this)"></div>
+                        <div class="theme-dot" style="background-color: #ef4444;" onclick="setTheme('red', this)"></div>
+                        <i class="fa-solid fa-angle-right" style="color: var(--border-color); font-size: 14px; margin: 0 4px;"></i>
+                        <input type="color" class="custom-color-picker" id="custom-theme-color" oninput="setCustomTheme(this.value)" value="#ff7700" title="직접 색상 선택">
+                    </div>
+
+                    <div class="card-title"><i class="fa-solid fa-folder-open"></i> 캐릭터 데이터베이스</div>
+                    <input type="text" id="character-name" placeholder="캐릭터 이름 입력">
+                    <div class="btn-group">
+                        <button class="secondary-btn" onclick="newCharacter()"><i class="fa-solid fa-plus"></i> 새로 만들기</button>
+                        <button class="primary-btn" onclick="saveCharacter()"><i class="fa-solid fa-floppy-disk"></i> 저장하기</button>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <select id="saved-character-list" onchange="loadCharacter()">
+                            <option value="">-- 캐릭터 불러오기 --</option>
+                        </select>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                            <button class="secondary-btn" style="padding: 10px; font-size: 13px;" onclick="exportSingleCharacter()">개별 백업</button>
+                            <button class="danger-btn" style="margin-top: 0;" onclick="deleteCharacter()">캐릭터 삭제</button>
+                        </div>
+                    </div>
+
+                    <div class="backup-btn-group">
+                        <button class="backup-btn" onclick="exportDatabase()"><i class="fa-solid fa-file-export"></i> 전체 DB 백업 (.json)</button>
+                        <button class="backup-btn" onclick="document.getElementById('import-file').click()"><i class="fa-solid fa-file-import"></i> 복구 (.json)</button>
+                    </div>
+                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importDatabase(this)">
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fa-solid fa-gear"></i> 설정 및 업로드</div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <label style="font-size: 13px; color: var(--text-dim); display: block; margin-bottom: 8px;">이름 생성 규칙</label>
+                            <select id="label-method" onchange="toggleLabelInput()" style="margin-bottom: 0;">
+                                <option value="filename">파일명 그대로</option>
+                                <option value="at_filename">앞에 @ 추가</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; color: var(--text-dim); display: block; margin-bottom: 8px;">한 줄 표시 개수</label>
+                            <select id="column-count" onchange="changeColumnCount()" style="margin-bottom: 0;">
+                                <option value="4">4개</option>
+                                <option value="5">5개</option>
+                                <option value="6">6개</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="drop-area" id="drop-area" onclick="document.getElementById('img-input').click()" style="margin-top: 15px;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>파일을 끌어다 놓거나 클릭하여 업로드</span>
+                    </div>
+                    <input type="file" id="img-input" accept="image/*" multiple style="display: none;">
+
+                    <div class="card-title sub-labeled" style="margin-top: 20px; font-size: 14px;"><i class="fa-solid fa-list-ol"></i> 업로드 대기열</div>
+                    <div class="card-sub-guide">대기열의 이미지를 눌러 크롭합니다.</div>
+                    <div class="preview-grid" id="preview-area"></div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="card" style="min-height: 500px;">
+                    <div class="card-title" style="justify-content: space-between; flex-wrap: wrap;">
+                        <span><i class="fa-solid fa-grip"></i> 포트레이트</span>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button onclick="sortButtonsByName()" style="background: transparent; border: 1px solid var(--text-dim); color: var(--text-dim); padding: 4px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.3s;">
+                                <i class="fa-solid fa-arrow-down-a-z"></i> 이름순 정렬
+                            </button>
+                            <button id="edit-mode-btn" onclick="toggleEditMode()" style="background: transparent; border: 1px solid var(--text-dim); color: var(--text-dim); padding: 4px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.3s;">
+                                <i class="fa-solid fa-pen"></i> 이름 수정 모드
+                            </button>
+                            <button onclick="applyGlobalCrop()" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 4px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.3s;">
+                                <i class="fa-solid fa-crop-simple"></i> 일괄 크롭 적용
+                            </button>
+                        </div>
+                    </div>
+                    <div class="buttons-container" id="button-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alert-box">클립보드에 복사되었습니다!</div>
+
+    <!-- 첫 접속 시 나타나는 웰컴 오버레이 설명서 (스크롤 버그 수정) -->
+    <div id="welcome-overlay" class="modal-overlay" style="display: flex;">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="card-title" style="justify-content: center; font-size: 22px; margin-bottom: 20px;">
+                <i class="fa-solid fa-book-open"></i> 포트레이트 Ctrl+c 시작하기
+            </div>
+            
+            <div class="help-content-box" style="padding: 0 10px;">
+                <h3><i class="fa-solid fa-image"></i> 이미지 업로드 및 편집</h3>
+                <ul>
+                    <li>점선 영역에 이미지를 끌어다 놓거나 클릭하여 업로드합니다.</li>
+                    <li>사진을 업로드하면 <b>자동으로 정밀 크롭창이 바로 켜집니다.</b></li>
+                    <li><b>사진을 추가로 더 넣었을 땐 대기열의 작은 사진을 클릭하면 크롭창이 켜집니다.</b></li>
+                    <li>크롭창에서 <code>Enter</code>를 누르면 저장, <code>ESC</code>를 누르면 취소됩니다.</li>
+                </ul>
+                
+                <h3><i class="fa-solid fa-crop-simple"></i> 일괄 크롭 적용</h3>
+                <ul>
+                    <li>원하는 구도로 이미지를 <b>하나 먼저 크롭</b>합니다.</li>
+                    <li>이후 <b>[일괄 크롭 적용]</b> 버튼을 누르면 대기열에 있는 모든 이미지가 방금 지정한 구도와 동일하게 자동으로 잘려서 카드로 생성됩니다.</li>
+                </ul>
+
+                <h3><i class="fa-solid fa-font"></i> 포트레이트 복사 및 관리</h3>
+                <ul>
+                    <li>만들어진 카드를 클릭하면 <b>이름이 복사</b>됩니다.</li>
+                    <li>카드를 마우스로 드래그하여 원하는 순서대로 배치할 수 있습니다.</li>
+                    <li><b>[이름 수정 모드]</b>를 켜고 카드를 누르면 이름을 직접 바꿀 수 있습니다.</li>
+                    <li><b>[이름순 정렬]</b>을 누르면 한글(ㄱ~ㅎ) ➔ 영어(A~Z) 순으로 자동 정렬됩니다.</li>
+                </ul>
+                
+                <h3><i class="fa-solid fa-floppy-disk"></i> 데이터 저장 및 백업</h3>
+                <ul>
+                    <li>입력칸에 캐릭터 이름을 적고 <b>[저장하기]</b>를 누르면 브라우저에 저장됩니다.</li>
+                    <li>소중한 데이터 보호를 위해 <b>[개별 백업]</b>이나 <b>[전체 DB 백업]</b>을 통해 <code>.json</code> 파일로 다운로드 해두는 것을 권장합니다.</li>
+                </ul>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="modal-btn save" onclick="document.getElementById('welcome-overlay').style.display='none'">시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 크롭 편집 모달 -->
+    <div id="cropper-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="card-title"><i class="fa-solid fa-crop"></i> 정밀 크롭 편집 <span style="font-size: 12px; font-weight: normal; margin-left: auto;">Enter: 저장 | ESC: 취소</span></div>
+            <div class="image-crop-box">
+                <img id="image-to-crop" src="" alt="크롭 편집기">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" onclick="closeCropper()">취소</button>
+                <button class="modal-btn save" onclick="saveCrop()">크롭 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 도움말 모달 -->
+    <div id="help-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="card-title"><i class="fa-solid fa-circle-question"></i> 사용 방법 안내</div>
+            
+            <div class="help-content-box" style="padding: 0 10px;">
+                <h3><i class="fa-solid fa-image"></i> 이미지 업로드 및 편집</h3>
+                <ul>
+                    <li>점선 영역에 이미지를 끌어다 놓거나 클릭하여 업로드합니다.</li>
+                    <li>사진을 업로드하면 <b>자동으로 정밀 크롭창이 바로 켜집니다.</b></li>
+                    <li><b>사진을 추가로 더 넣었을 땐 대기열의 작은 사진을 클릭하면 크롭창이 켜집니다.</b></li>
+                    <li>크롭창에서 <code>Enter</code>를 누르면 저장, <code>ESC</code>를 누르면 취소됩니다.</li>
+                </ul>
+                
+                <h3><i class="fa-solid fa-crop-simple"></i> 일괄 크롭 적용</h3>
+                <ul>
+                    <li>원하는 구도로 이미지를 <b>하나 먼저 크롭</b>합니다.</li>
+                    <li>이후 <b>[일괄 크롭 적용]</b> 버튼을 누르면 대기열에 있는 모든 이미지가 방금 지정한 구도와 동일하게 자동으로 잘려서 카드로 생성됩니다.</li>
+                </ul>
+
+                <h3><i class="fa-solid fa-font"></i> 포트레이트 복사 및 관리</h3>
+                <ul>
+                    <li>만들어진 카드를 클릭하면 <b>이름이 복사</b>됩니다.</li>
+                    <li>카드를 마우스로 드래그하여 원하는 순서대로 배치할 수 있습니다.</li>
+                    <li><b>[이름 수정 모드]</b>를 켜고 카드를 누르면 이름을 직접 바꿀 수 있습니다.</li>
+                    <li><b>[이름순 정렬]</b>을 누르면 한글(ㄱ~ㅎ) ➔ 영어(A~Z) 순으로 자동 정렬됩니다.</li>
+                </ul>
+                
+                <h3><i class="fa-solid fa-floppy-disk"></i> 데이터 저장 및 백업</h3>
+                <ul>
+                    <li>입력칸에 캐릭터 이름을 적고 <b>[저장하기]</b>를 누르면 브라우저에 저장됩니다.</li>
+                    <li>소중한 데이터 보호를 위해 <b>[개별 백업]</b>이나 <b>[전체 DB 백업]</b>을 통해 <code>.json</code> 파일로 다운로드 해두는 것을 권장합니다.</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn save" onclick="closeHelpModal()">확인 및 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script>
+        let cropper;
+        let selectedFiles = [];
+        let currentFileIndex = 0;
+        let lastCropData = null;
+        let buttonsData = [];
+        let sortable;
+        let isEditMode = false;
+
+        const dropArea = document.getElementById('drop-area');
+
+        // 열 표시 개수 변경 (픽셀 대신 비율 1fr로 수정)
+        function changeColumnCount() {
+            const count = document.getElementById('column-count').value;
+            const container = document.getElementById('button-container');
+            const appBox = document.getElementById('main-container');
+            
+            container.style.gridTemplateColumns = `repeat(${count}, 1fr)`;
+            
+            // 칸 수에 맞춰 전체 레이아웃 가로 길이 동적 확장 (데스크탑 뷰 기준)
+            if (count === '4') appBox.style.maxWidth = '1100px';
+            if (count === '5') appBox.style.maxWidth = '1280px';
+            if (count === '6') appBox.style.maxWidth = '1460px';
+
+            localStorage.setItem('portrait_layout_columns', count);
+        }
+
+        // 페이지 로드 시 저장된 열 개수 불러오기
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedCols = localStorage.getItem('portrait_layout_columns');
+            if (savedCols) {
+                document.getElementById('column-count').value = savedCols;
+                changeColumnCount();
+            }
+        });
+
+        function sortButtonsByName() {
+            if (buttonsData.length === 0) return;
+            
+            buttonsData.sort((a, b) => {
+                return a.text.localeCompare(b.text, 'ko-KR', { sensitivity: 'base' });
+            });
+            
+            renderButtons();
+            showToast("이름순으로 정렬되었습니다.");
+        }
+
+        function openHelpModal() {
+            document.getElementById('help-modal').style.display = 'flex';
+        }
+
+        function closeHelpModal() {
+            document.getElementById('help-modal').style.display = 'none';
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('edit-mode-btn');
+            if (isEditMode) {
+                btn.style.borderColor = '#ef4444';
+                btn.style.color = '#ef4444';
+                btn.style.background = 'rgba(239, 68, 68, 0.1)';
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> 수정 완료';
+                showToast("수정 모드 ON: 카드를 눌러 이름을 변경하세요.");
+            } else {
+                btn.style.borderColor = 'var(--text-dim)';
+                btn.style.color = 'var(--text-dim)';
+                btn.style.background = 'transparent';
+                btn.innerHTML = '<i class="fa-solid fa-pen"></i> 이름 수정 모드';
+                showToast("수정 모드 OFF: 클릭 시 이름이 복사됩니다.");
+            }
+            renderButtons();
+        }
+
+        window.addEventListener('keydown', function(e) {
+            const cropperModal = document.getElementById('cropper-modal');
+            const helpModal = document.getElementById('help-modal');
+            const welcomeModal = document.getElementById('welcome-overlay');
+            
+            if (cropperModal.style.display === 'flex') {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCrop();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeCropper();
+                }
+            } else if (helpModal.style.display === 'flex') {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    e.preventDefault();
+                    closeHelpModal();
+                }
+            } else if (welcomeModal.style.display === 'flex') {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    e.preventDefault();
+                    welcomeModal.style.display = 'none';
+                }
+            }
+        });
+
+        function exportSingleCharacter() {
+            const name = document.getElementById('saved-character-list').value;
+            if (!name) return alert("백업할 캐릭터를 선택해주세요.");
+            
+            const data = localStorage.getItem(`char_${name}`);
+            if (!data) return alert("데이터가 없습니다.");
+            
+            const backupData = {};
+            backupData[`char_${name}`] = data;
+            
+            const dataStr = JSON.stringify(backupData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', `${name}_backup.json`);
+            linkElement.click();
+            showToast(`'${name}' 데이터가 내보내졌습니다.`);
+        }
+
+        function exportDatabase() {
+            const backupData = {};
+            let hasData = false;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('char_')) {
+                    backupData[key] = localStorage.getItem(key);
+                    hasData = true;
+                }
+            }
+
+            if (!hasData) {
+                return alert("내보낼 캐릭터 데이터가 없습니다.");
+            }
+
+            const dataStr = JSON.stringify(backupData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'character_DB_backup.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showToast("전체 데이터 파일이 내보내졌습니다.");
+        }
+
+        function importDatabase(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    let importedCount = 0;
+
+                    for (const key in importedData) {
+                        if (key.startsWith('char_')) {
+                            localStorage.setItem(key, importedData[key]);
+                            importedCount++;
+                        }
+                    }
+
+                    if (importedCount > 0) {
+                        updateCharacterList();
+                        showToast(`${importedCount}개의 캐릭터 복구 완료!`);
+                    } else {
+                        alert("올바른 백업 파일 형식이 아닙니다.");
+                    }
+                } catch (err) {
+                    alert("파일을 읽는 중 오류가 발생했습니다: " + err.message);
+                }
+                input.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function setScreenMode(mode) {
+            const body = document.body;
+            const btnLight = document.getElementById('btn-light');
+            const btnDark = document.getElementById('btn-dark');
+
+            if (mode === 'light') {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                btnLight.classList.add('active');
+                btnDark.classList.remove('active');
+            } else {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                btnDark.classList.add('active');
+                btnLight.classList.remove('active');
+            }
+        }
+
+        function setTheme(themeName, el) {
+            document.body.style.removeProperty('--accent');
+            document.body.style.removeProperty('--accent-rgb');
+            
+            document.body.classList.remove('theme-mono', 'theme-blue', 'theme-green', 'theme-purple', 'theme-red');
+            document.body.classList.add('theme-' + themeName);
+            document.querySelectorAll('.theme-dot').forEach(dot => dot.classList.remove('active'));
+            if(el) el.classList.add('active');
+        }
+
+        function setCustomTheme(hex) {
+            document.body.classList.remove('theme-mono', 'theme-blue', 'theme-green', 'theme-purple', 'theme-red');
+            document.querySelectorAll('.theme-dot').forEach(dot => dot.classList.remove('active'));
+            
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+            
+            document.body.style.setProperty('--accent', hex);
+            document.body.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+        }
+
+        function newCharacter() {
+            if (confirm("현재 작업을 비우고 새로 만드시겠습니까? (저장되지 않은 정보는 유실됩니다)")) {
+                buttonsData = []; selectedFiles = []; lastCropData = null;
+                renderButtons(); renderPreviews();
+                document.getElementById('character-name').value = "";
+                showToast("새 캔버스가 준비되었습니다.");
+            }
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
+            dropArea.addEventListener(name, e => {
+                e.preventDefault(); e.stopPropagation();
+            });
+        });
+
+        dropArea.addEventListener('drop', function(e) {
+            if(e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+        });
+
+        document.getElementById('img-input').addEventListener('change', function(e) {
+            if(e.target.files) handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const newFiles = Array.from(files);
+                const startIndex = selectedFiles.length;
+                selectedFiles = selectedFiles.concat(newFiles);
+                renderPreviews();
+                processFilesAutomatically(newFiles);
+
+                setTimeout(() => {
+                    openEditorForPreview(startIndex);
+                }, 200);
+
+                document.getElementById('img-input').value = ""; 
+            }
+        }
+
+        function toggleLabelInput() { reapplyLabels(); }
+
+        function reapplyLabels() {
+            buttonsData.forEach((item) => {
+                if (item.originalFileName) {
+                    const method = document.getElementById('label-method').value;
+                    item.text = (method === 'at_filename') ? ("@" + item.originalFileName) : item.originalFileName;
+                }
+            });
+            renderButtons();
+        }
+
+        function renderPreviews() {
+            const previewArea = document.getElementById('preview-area');
+            previewArea.innerHTML = "";
+
+            const promises = selectedFiles.map((file) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        resolve({ name: file.name, src: e.target.result });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+
+            Promise.all(promises).then((results) => {
+                results.forEach((data, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'preview-wrapper';
+                    wrapper.innerHTML = `
+                        <div class="preview-item" onclick="openEditorForPreview(${index})">
+                            <img src="${data.src}" alt="${data.name}">
+                            <div class="preview-delete-btn" onclick="deletePreview(event, ${index})"><i class="fa-solid fa-xmark"></i></div>
+                        </div>
+                        <div class="preview-label">${index + 1}</div>
+                    `;
+                    previewArea.appendChild(wrapper);
+                });
+            });
+        }
+
+        function deletePreview(event, index) {
+            event.stopPropagation();
+            const file = selectedFiles[index];
+            selectedFiles.splice(index, 1);
+            if (file) {
+                const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+                buttonsData = buttonsData.filter(item => item.originalFileName !== fileNameWithoutExt);
+            }
+            renderPreviews(); renderButtons();
+        }
+
+        function openEditorForPreview(index) {
+            currentFileIndex = index;
+            const file = selectedFiles[index];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgElement = document.getElementById('image-to-crop');
+                imgElement.src = e.target.result;
+                document.getElementById('cropper-modal').style.display = 'flex';
+                
+                if (cropper) cropper.destroy();
+                setTimeout(() => {
+                    cropper = new Cropper(imgElement, {
+                        aspectRatio: 1, viewMode: 1, autoCropArea: 1
+                    });
+                }, 50);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processFilesAutomatically(filesToProcess) {
+            filesToProcess.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 1080; canvas.height = 1080; 
+                        const ctx = canvas.getContext('2d');
+                        if (lastCropData) {
+                            ctx.drawImage(img, lastCropData.x, lastCropData.y, lastCropData.width, lastCropData.height, 0, 0, 1080, 1080);
+                        } else {
+                            ctx.drawImage(img, 0, 0, 1080, 1080);
+                        }
+                        const croppedImageUrl = canvas.toDataURL();
+                        const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+                        const method = document.getElementById('label-method').value;
+                        let labelText = (method === 'at_filename') ? ("@" + fileNameWithoutExt) : fileNameWithoutExt;
+                        buttonsData = buttonsData.filter(item => item.originalFileName !== fileNameWithoutExt);
+                        addButton(labelText, croppedImageUrl, lastCropData || {x:0, y:0, width:160, height:160}, fileNameWithoutExt);
+                    };
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function closeCropper() {
+            document.getElementById('cropper-modal').style.display = 'none';
+            if (cropper) { cropper.destroy(); cropper = null; }
+            document.getElementById('img-input').value = "";
+        }
+
+        function saveCrop() {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas({ width: 1080, height: 1080 });
+                if(!canvas) return;
+                const croppedImageUrl = canvas.toDataURL();
+                lastCropData = cropper.getData();
+                const file = selectedFiles[currentFileIndex];
+                if(!file) return;
+                const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+                const method = document.getElementById('label-method').value;
+                let labelText = (method === 'at_filename') ? ("@" + fileNameWithoutExt) : fileNameWithoutExt;
+                const existingIndex = buttonsData.findIndex(item => item.originalFileName === fileNameWithoutExt);
+                const buttonObj = {
+                    id: existingIndex !== -1 ? buttonsData[existingIndex].id : (Date.now() + Math.random()),
+                    text: labelText, src: croppedImageUrl, crop: lastCropData, originalFileName: fileNameWithoutExt
+                };
+                if (existingIndex !== -1) buttonsData[existingIndex] = buttonObj;
+                else buttonsData.push(buttonObj);
+                closeCropper(); renderButtons();
+            }
+        }
+
+        function addButton(text, imageUrl, cropData, fileNameStr) {
+            const buttonId = Date.now() + Math.random();
+            buttonsData.push({ id: buttonId, text: text, src: imageUrl, crop: cropData, originalFileName: fileNameStr });
+            renderButtons();
+        }
+
+        function deleteCard(event, id) {
+            event.stopPropagation();
+            buttonsData = buttonsData.filter(item => item.id.toString() !== id.toString());
+            renderButtons();
+        }
+
+        function renderButtons() {
+            const container = document.getElementById('button-container');
+            container.innerHTML = "";
+            buttonsData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'btn-card';
+                card.onclick = (e) => {
+                    if (e.target.className !== 'card-delete-btn' && e.target.closest('.card-delete-btn') === null) {
+                        if (isEditMode) {
+                            const newName = prompt("새로운 이름을 입력하세요:", item.text);
+                            if (newName !== null && newName.trim() !== "") {
+                                item.text = newName.trim();
+                                renderButtons();
+                            }
+                        } else {
+                            copyText(item.text);
+                        }
+                    }
+                };
+                
+                const editIcon = isEditMode ? '<i class="fa-solid fa-pen" style="font-size:10px; margin-left:4px; opacity:0.8;"></i>' : '';
+                
+                card.innerHTML = `
+                    <div class="card-delete-btn" onclick="deleteCard(event, '${item.id}')"><i class="fa-solid fa-trash-can"></i></div>
+                    <img src="${item.src}" alt="${item.text}">
+                    <div class="label-overlay">${item.text} ${editIcon}</div>
+                `;
+                container.appendChild(card);
+            });
+            initSortable();
+        }
+
+        function initSortable() {
+            const container = document.getElementById('button-container');
+            if (sortable) sortable.destroy();
+            sortable = Sortable.create(container, {
+                animation: 250,
+                onEnd: function (evt) {
+                    const movedItem = buttonsData.splice(evt.oldIndex, 1)[0];
+                    buttonsData.splice(evt.newIndex, 0, movedItem);
+                }
+            });
+        }
+
+        function applyGlobalCrop() {
+            if (buttonsData.length === 0 || !lastCropData) return alert("먼저 이미지를 하나 크롭 편집해주세요.");
+            if (selectedFiles.length === 0) return alert("일괄 크롭을 위해 대기열에 원본 이미지가 필요합니다.");
+            let count = 0;
+            selectedFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 1080; canvas.height = 1080; 
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, lastCropData.x, lastCropData.y, lastCropData.width, lastCropData.height, 0, 0, 1080, 1080);
+                        const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+                        const target = buttonsData.find(item => item.originalFileName === fileNameWithoutExt);
+                        if (target) { target.src = canvas.toDataURL(); target.crop = lastCropData; }
+                        count++;
+                        if (count === selectedFiles.length) renderButtons();
+                    };
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function resetAll() {
+            if (confirm("전체 설정을 초기화하시겠습니까? 저장되지 않은 데이터는 삭제됩니다.")) {
+                buttonsData = []; selectedFiles = []; lastCropData = null;
+                renderButtons(); renderPreviews();
+                document.getElementById('character-name').value = "";
+                showToast("앱이 초기화되었습니다.");
+            }
+        }
+
+        function saveCharacter() {
+            const name = document.getElementById('character-name').value.trim();
+            if (!name) return alert("캐릭터 이름을 입력해주세요.");
+            localStorage.setItem(`char_${name}`, JSON.stringify(buttonsData));
+            updateCharacterList();
+            showToast(`'${name}' 캐릭터가 저장되었습니다.`);
+        }
+
+        function updateCharacterList() {
+            const select = document.getElementById('saved-character-list');
+            select.innerHTML = '<option value="">-- 캐릭터 불러오기 --</option>';
+            
+            let charNames = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('char_')) {
+                    charNames.push(key.replace('char_', ''));
+                }
+            }
+            
+            charNames.sort((a, b) => a.localeCompare(b, 'ko-KR', { sensitivity: 'base' }));
+            
+            charNames.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+
+        function loadCharacter() {
+            const name = document.getElementById('saved-character-list').value;
+            if (!name) return;
+            const data = localStorage.getItem(`char_${name}`);
+            if (data) {
+                buttonsData = JSON.parse(data);
+                selectedFiles = []; renderPreviews(); renderButtons();
+                document.getElementById('character-name').value = name;
+                showToast(`'${name}' 데이터를 불러왔습니다.`);
+            }
+        }
+
+        function deleteCharacter() {
+            const name = document.getElementById('saved-character-list').value;
+            if (!name) return alert("삭제할 캐릭터를 선택해주세요.");
+            if (confirm(`'${name}' 데이터를 정말 삭제하시겠습니까?`)) {
+                localStorage.removeItem(`char_${name}`);
+                updateCharacterList();
+                document.getElementById('character-name').value = "";
+                showToast("데이터가 삭제되었습니다.");
+            }
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`'${text}' 복사됨`);
+            });
+        }
+
+        function showToast(msg) {
+            const box = document.getElementById('alert-box');
+            box.innerText = msg;
+            box.style.display = 'block';
+            setTimeout(() => { box.style.display = 'none'; }, 2000);
+        }
+
+        updateCharacterList();
+    </script>
+</body>
+</html>
