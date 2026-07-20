@@ -290,7 +290,6 @@
             z-index: 2000; box-shadow: 0 10px 20px var(--shadow);
         }
         
-        /* 관리 모달용 커스텀 체크박스 */
         .manage-chk { accent-color: var(--accent); width: 16px; height: 16px; }
     </style>
 </head>
@@ -337,7 +336,6 @@
 
                     <div class="card-title"><i class="fa-solid fa-folder-open"></i> 캐릭터 데이터베이스</div>
                     
-                    <!-- 용량 표시 바 -->
                     <div style="margin-bottom: 20px;">
                         <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:600;">
                             <span><i class="fa-solid fa-database"></i> 브라우저 저장소</span>
@@ -425,7 +423,7 @@
 
     <div id="alert-box">클립보드에 복사되었습니다!</div>
 
-    <!-- 웰컴 오버레이 (설명서 통합 최신화) -->
+    <!-- 웰컴 오버레이 -->
     <div id="welcome-overlay" class="modal-overlay" style="display: flex;">
         <div class="modal-content" style="max-width: 550px;">
             <div class="card-title" style="justify-content: center; font-size: 22px; margin-bottom: 20px;">
@@ -475,7 +473,7 @@
         </div>
     </div>
 
-    <!-- 도움말 모달 (웰컴 오버레이와 동일한 내용으로 통일) -->
+    <!-- 도움말 모달 -->
     <div id="help-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
             <div class="card-title"><i class="fa-solid fa-circle-question"></i> 사용 방법 안내</div>
@@ -519,7 +517,6 @@
             </div>
             
             <div id="manage-list" style="max-height: 300px; overflow-y: auto; text-align: left; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 15px; margin-bottom: 20px; background: var(--bg-input);">
-                <!-- 자바스크립트로 체크박스 리스트 렌더링 -->
             </div>
             
             <div class="modal-footer">
@@ -543,7 +540,6 @@
 
         const dropArea = document.getElementById('drop-area');
 
-        // 브라우저 저장소 용량 업데이트
         function updateStorageIndicator() {
             let totalBytes = 0;
             for (let x in localStorage) {
@@ -551,7 +547,7 @@
                     totalBytes += ((localStorage[x].length + x.length) * 2);
                 }
             }
-            const maxBytes = 5 * 1024 * 1024; // 5MB
+            const maxBytes = 5 * 1024 * 1024;
             let percent = (totalBytes / maxBytes) * 100;
             if (percent > 100) percent = 100;
             
@@ -565,33 +561,27 @@
             else barFill.style.backgroundColor = 'var(--accent)';
         }
 
-        // DOMContentLoaded: 초기 설정 및 저장된 테마/모드 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             updateStorageIndicator();
 
-            // 1. 저장된 열 개수 불러오기
             const savedCols = localStorage.getItem('portrait_layout_columns');
             if (savedCols) {
                 document.getElementById('column-count').value = savedCols;
                 changeColumnCount();
             }
 
-            // 2. 저장된 화면 모드(라이트/다크) 불러오기
             const savedScreenMode = localStorage.getItem('portrait_screen_mode');
             if (savedScreenMode) {
                 setScreenMode(savedScreenMode, false);
             }
 
-            // 3. 저장된 테마 컬러 불러오기
             const savedThemeType = localStorage.getItem('portrait_theme_type');
             if (savedThemeType === 'preset') {
                 const tName = localStorage.getItem('portrait_theme_name');
                 if (tName) {
                     const dots = document.querySelectorAll('.theme-dot');
                     let targetDot = null;
-                    dots.forEach(dot => {
-                        if (dot.getAttribute('data-theme') === tName) targetDot = dot;
-                    });
+                    dots.forEach(dot => { if (dot.getAttribute('data-theme') === tName) targetDot = dot; });
                     if (targetDot) setTheme(tName, targetDot, false);
                 }
             } else if (savedThemeType === 'custom') {
@@ -662,7 +652,6 @@
             }
         });
 
-        // 캐릭터 일괄 관리
         function openManageModal() {
             const listDiv = document.getElementById('manage-list');
             listDiv.innerHTML = '';
@@ -771,7 +760,6 @@
             reader.readAsText(file);
         }
 
-        // 화면 모드 및 테마 설정 (로컬 스토리지 저장 기능 추가)
         function setScreenMode(mode, save = true) {
             const body = document.body;
             const btnLight = document.getElementById('btn-light');
@@ -898,16 +886,17 @@
             reader.readAsDataURL(file);
         }
 
+        /* 화질을 한 단계 더 낮춰 용량 부담을 대폭 줄인 320x320 해상도 적용 */
         function processFilesAutomatically(filesToProcess) {
             filesToProcess.forEach((file) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const img = new Image(); img.src = e.target.result;
                     img.onload = function() {
-                        const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; 
+                        const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 320; 
                         const ctx = canvas.getContext('2d');
-                        if (lastCropData) ctx.drawImage(img, lastCropData.x, lastCropData.y, lastCropData.width, lastCropData.height, 0, 0, 512, 512);
-                        else ctx.drawImage(img, 0, 0, 512, 512);
+                        if (lastCropData) ctx.drawImage(img, lastCropData.x, lastCropData.y, lastCropData.width, lastCropData.height, 0, 0, 320, 320);
+                        else ctx.drawImage(img, 0, 0, 320, 320);
                         const croppedImageUrl = canvas.toDataURL('image/webp', 0.85);
                         const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
                         const method = document.getElementById('label-method').value;
@@ -928,7 +917,7 @@
 
         function saveCrop() {
             if (cropper) {
-                const canvas = cropper.getCroppedCanvas({ width: 512, height: 512 }); if(!canvas) return;
+                const canvas = cropper.getCroppedCanvas({ width: 320, height: 320 }); if(!canvas) return;
                 const croppedImageUrl = canvas.toDataURL('image/webp', 0.85);
                 lastCropData = cropper.getData(); const file = selectedFiles[currentFileIndex]; if(!file) return;
                 const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
@@ -1000,9 +989,9 @@
                 reader.onload = function(e) {
                     const img = new Image(); img.src = e.target.result;
                     img.onload = function() {
-                        const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; 
+                        const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 320; 
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, lastCropData.x, lastCropData.y, lastCropData.width, lastCropData.height, 0, 0, 512, 512);
+                        ctx.drawImage(img, lastCropData.x, lastCropData.y, lastCropData.width, lastCropData.height, 0, 0, 320, 320);
                         const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
                         const target = buttonsData.find(item => item.originalFileName === fileNameWithoutExt);
                         if (target) { target.src = canvas.toDataURL('image/webp', 0.85); target.crop = lastCropData; }
